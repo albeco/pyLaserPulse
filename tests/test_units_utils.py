@@ -7,14 +7,18 @@ from astropy.units.core import CompositeUnit
 from astropy.units.quantity import Quantity
 import random as rnd
 
+
 # monkey-patching TestCase to support array quantities
 def assertQuantityEqual(self, q1, q2):
     self.assertEqual(len(q1), len(q2))
     for x, y in zip(q1, q2):
         self.assertEqual(x, y)
+
+
 unittest.TestCase.assertQuantityEqual = assertQuantityEqual
 
-def get_random_unit(test_bases = [u.m, u.s, u.kg, u.A]):
+
+def get_random_unit(test_bases=(u.m, u.s, u.kg, u.A)):
     scale = rnd.randrange(-1e5, 1e5)
     start_no_bases = rnd.randint(2, len(test_bases))
     # choose bases randomly, then remove duplicates
@@ -28,6 +32,7 @@ def get_random_unit(test_bases = [u.m, u.s, u.kg, u.A]):
     else:
         unit = get_random_unit(test_bases)
     return unit
+
 
 class TestFixHertz(unittest.TestCase):
     """ test class for the s/Hz functions in units_utils module """
@@ -167,6 +172,7 @@ class TestFixHertz(unittest.TestCase):
                                              Quantity([-1.5, 1, 11], u.ns))
         self.assertQuantityEqual(ut.fixhertz(Quantity([2, 20, 3.2], 1)),
                                              Quantity([2, 20, 3.2], 1))
+
 
 class TestOptimUnits(unittest.TestCase):
     """ test class for optimization functions in units_utils module """
@@ -553,7 +559,7 @@ class TestOptimUnits(unittest.TestCase):
         self.assertEqual(ut.opt_single_base(
             CompositeUnit(1e-17, [u.Eg], [2])), 10 * u.Gg**2)
         self.assertEqual(ut.opt_single_base(
-            CompositeUnit(1e-21, [u.EA], [2])), 1e3* u.MA**2)
+            CompositeUnit(1e-21, [u.EA], [2])), 1e3 * u.MA**2)
         self.assertEqual(ut.opt_single_base(
             CompositeUnit(1e-41, [u.Zs], [3])), 1e4 * u.Ms**3)
         # starting from lower unit with small prefix to lower unit
@@ -660,7 +666,7 @@ class TestOptimUnits(unittest.TestCase):
         self.assertEqual(ut.opt_single_base(
             CompositeUnit(1e-89, [u.ug], [-10])), 10 * u.kg**-10)
         self.assertEqual(ut.opt_single_base(
-            CompositeUnit(1e-170, [u.fHz], [-10])), 1e10* u.kHz**-10)
+            CompositeUnit(1e-170, [u.fHz], [-10])), 1e10 * u.kHz**-10)
 
     def test_opt_single_base_toLowerSIUnit_power_neg(self):
         # starting from unit without prefix (or Kg because is SI unit)
@@ -765,7 +771,7 @@ class TestOptimUnits(unittest.TestCase):
         self.assertEqual(ut.opt_single_base(
             CompositeUnit(1e2, [u.cm], [1])), 1 * u.m)
         self.assertEqual(ut.opt_single_base(
-            CompositeUnit(1e5, [u.cm], [1])), 1 * u.km)#
+            CompositeUnit(1e5, [u.cm], [1])), 1 * u.km)
         self.assertEqual(ut.opt_single_base(
             CompositeUnit(1e7, [u.cm], [1])), 100 * u.km)
         self.assertEqual(ut.opt_single_base(
@@ -808,7 +814,6 @@ class TestOptimUnits(unittest.TestCase):
         self.assertEqual(ut.opt_single_base(
             CompositeUnit(-1e-3, [u.m], [-1])), -1 / u.km)
 
-
     def test_opt_comp_units(self):
         test_bases = (u.m, u.s, u.Hz, u.W, u.kJ, u.GA,
                       u.Tmol, u.uN, u.pPa, u.aRy)
@@ -840,12 +845,12 @@ class TestOptimUnits(unittest.TestCase):
         # should do nothing for Named units
         self.assertEqual(u.km, u.km)
         self.assertEqual(u.ps, u.ps)
-        #should optimize CompositeUnit
+        # should optimize CompositeUnit
         u1 = CompositeUnit(1000, [u.m], [1])
         self.assertEqual(u1, ut.opt_comp_units(u1))
         u2 = CompositeUnit(1e-3, [u.m], [-1])
         self.assertEqual(u2, ut.opt_comp_units(u2))
-        u3 = CompositeUnit(1e6, [u.m, u.MHz], [2,3])
+        u3 = CompositeUnit(1e6, [u.m, u.MHz], [2, 3])
         self.assertEqual(u3, ut.opt_comp_units(u3))
         u4 = CompositeUnit(5e-8, [u.m, u.MHz], [-2, 3])
         self.assertEqual(u4, ut.opt_comp_units(u4))
@@ -854,7 +859,7 @@ class TestOptimUnits(unittest.TestCase):
         self.assertEqual(ut.optimize_unit(-1000 * u.m), -1 * u.km)
         self.assertEqual(ut.optimize_unit(1e-3 / u.m), 1 / u.km)
         self.assertEqual(ut.optimize_unit(1e6 * u.m), 1 * u.Mm)
-        self.assertEqual(ut.optimize_unit(1e7* u.m), 10 * u.Mm)
+        self.assertEqual(ut.optimize_unit(1e7 * u.m), 10 * u.Mm)
         self.assertEqual(ut.optimize_unit(1e6 * u.m**2), 1 * u.km**2)
         self.assertEqual(ut.optimize_unit(1e8 * u.m ** 2), 100 * u.km ** 2)
         self.assertEqual(ut.optimize_unit(1e-6 / u.m**2), 1 / u.km**2)
@@ -879,7 +884,7 @@ class TestOptimUnits(unittest.TestCase):
                                           200 * u.kHz ** 2)
         # should work also for arrays
         self.assertQuantityEqual(ut.optimize_unit(
-            Quantity([1000,2000,3000], u.m)),
+            Quantity([1000, 2000, 3000], u.m)),
             Quantity([1, 2, 3], u.km))
         self.assertQuantityEqual(ut.optimize_unit(
             Quantity([1e4, 2e3, -3e3], u.m)),
@@ -900,6 +905,7 @@ class TestOptimUnits(unittest.TestCase):
             self.assertEqual(
                 ut.optimize_unit(quant),
                 new_value * CompositeUnit(1, opt_unit.bases, opt_unit.powers))
+
 
 if __name__ == "__main__":
     unittest.main()

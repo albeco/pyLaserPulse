@@ -22,7 +22,7 @@ prefix_map = {pref: exp for (pref, exp) in zip(si_prefixes, si_exponents)}
 exponent_map = {exp: pref for (pref, exp) in prefix_map.items()}
 
 
-def pref_to_expon(pref):
+def pref_to_expon(pref: str) -> int:
     """ returns the exponent of a given SI prefix"""
     try:
         expon = prefix_map[pref]
@@ -31,7 +31,7 @@ def pref_to_expon(pref):
     return expon
 
 
-def expon_to_pref(expon):
+def expon_to_pref(expon: int) -> str:
     """ returns the SI prefix corresponding to a given exponent """
     try:
         pref = exponent_map[expon]
@@ -105,7 +105,8 @@ def fixhertz_comp(u2: CompositeUnit) -> UnitBase:
     return new_unit
 
 
-def fixhertz(x: Union[Quantity, UnitBase]) -> UnitBase:
+def fixhertz(x: Union[ComplexNumber, Quantity, UnitBase]) \
+        -> Union[ComplexNumber, Quantity, UnitBase]:
     """ replaces 1/s with Hertz in physical units and quantities """
     if isinstance(x, Quantity):
         return Quantity(x.value, fixhertz_comp(x.unit))
@@ -158,7 +159,7 @@ def opt_named_unit(unit: NamedUnit) -> NamedUnit:
     return unit
 
 
-def opt_comp_units(unit):
+def opt_comp_units(unit: CompositeUnit) -> CompositeUnit:
     """
     optimizes CompositeUnit instances
     it optimizes only the first base
@@ -180,7 +181,9 @@ def opt_comp_units(unit):
                          new_base.powers + unit.powers[1:])
 
 
-def optimize_unit(quant, fix_time_freq=False):
+def optimize_unit(quant: Union[ComplexNumber, Quantity, UnitBase],
+                  fix_time_freq: bool = False) \
+        -> Union[ComplexNumber, Quantity, UnitBase]:
     """ optimize physical units and quantities """
     # if input is a unit rather than a quantity delegate its handling
     if isinstance(quant, NamedUnit):
