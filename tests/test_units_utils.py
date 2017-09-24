@@ -3,19 +3,42 @@
 import unittest
 import pyLaserPulse.units_utils as ut
 from astropy import units as u
-from astropy.units.core import CompositeUnit
+from astropy.units.core import UnitBase, CompositeUnit
 from astropy.units.quantity import Quantity
 import random as rnd
 
+def toCompositeUnit(x):
+    """ convert a NamedUnit to CompositeUnit """
+    if not isinstance(x, UnitBase):
+        raise TypeError("{} should be instance of UnitBase".format(x))
+    if not isinstance(x, CompositeUnit):
+        x = CompositeUnit(1, [x], [1])
+    return x
 
-# monkey-patching TestCase to support array quantities
-def assertQuantityEqual(self, q1, q2):
-    self.assertEqual(len(q1), len(q2))
-    for x, y in zip(q1, q2):
-        self.assertEqual(x, y)
+class UnitsTestCase(unittest.TestCase):
+    """ Test class for physical units and quantities """
+    def assertUnitEqual(self, u1, u2):
+        if not isinstance(u1, UnitBase):
+            raise AssertionError("{} is not instance of UnitBase".format(u1))
+        u1c = toCompositeUnit(u1)
+        u2c = toCompositeUnit(u2)
+        self.assertAlmostEqual(u1c.scale, u2c.scale)
+        self.assertListEqual(u1c.bases, u2c.bases)
+        self.assertListEqual(u1c.powers, u2c.powers)
 
-
-unittest.TestCase.assertQuantityEqual = assertQuantityEqual
+    def assertQuantityEqual(self, q1, q2):
+        if not isinstance(q1, Quantity):
+            raise AssertionError("{} is not a Quantity".format(q1))
+        if not isinstance(q2, Quantity):
+            raise AssertionError("{} is not a Quantity".format(q2))
+        self.assertUnitEqual(q1.unit, q2.unit)
+        # assume q1, q2 are iterable, if not compare them as scalars
+        try:
+            self.assertEqual(len(q1), len(q2))
+            for x, y in zip(q1.value, q2.value):
+                self.assertAlmostEqual(x, y)
+        except TypeError:
+            self.assertAlmostEqual(q1.value, q2.value)
 
 
 def get_random_unit(test_bases=(u.m, u.s, u.kg, u.A)):
@@ -34,7 +57,7 @@ def get_random_unit(test_bases=(u.m, u.s, u.kg, u.A)):
     return unit
 
 
-class TestFixHertz(unittest.TestCase):
+class TestFixHertz(UnitsTestCase):
     """ test class for the s/Hz functions in units_utils module """
 
     def test_is_unity(self):
@@ -121,9 +144,9 @@ class TestFixHertz(unittest.TestCase):
             CompositeUnit(1, [u.km, u.GHz, u.kg], [2, 3, 6]))
         self.assertEqual(ut.fixhertz_comp(
             CompositeUnit(1, [u.mA, u.GHz, u.kg, u.s],
-                          [20, 31, 7, 10])),
+                             [20, 31, 7, 10])),
             CompositeUnit(1, [u.mA, u.GHz, u.kg, u.s],
-                          [20, 31, 7, 10]))
+                             [20, 31, 7, 10]))
         self.assertEqual(ut.fixhertz_comp(
             CompositeUnit(1, [u.m, u.s, u.kg], [20, -3, 0])),
             CompositeUnit(1, [u.m, u.Hz, u.kg], [20, 3, 0]))
@@ -174,7 +197,7 @@ class TestFixHertz(unittest.TestCase):
                                              Quantity([2, 20, 3.2], 1))
 
 
-class TestOptimUnits(unittest.TestCase):
+class TestOptimUnits(UnitsTestCase):
     """ test class for optimization functions in units_utils module """
 
     def test_opt_single_base_toHigherSIUnit_power_1(self):
