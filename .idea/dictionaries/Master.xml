@@ -2,6 +2,7 @@
   <dictionary name="Master">
     <words>
       <w>expon</w>
+      <w>iterables</w>
       <w>quant</w>
       <w>rtol</w>
     </words>

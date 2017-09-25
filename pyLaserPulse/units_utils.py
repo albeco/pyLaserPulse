@@ -53,6 +53,15 @@ def is_unity(x: ComplexNumber) -> bool:
     return is_close(x, 1)
 
 
+def to_composite_unit(x):
+    """ convert a NamedUnit to CompositeUnit """
+    if not isinstance(x, UnitBase):
+        raise TypeError("{} should be instance of UnitBase".format(x))
+    if not isinstance(x, CompositeUnit):
+        x = CompositeUnit(1, [x], [1])
+    return x
+
+
 def is_time_freq(x: NamedUnit) -> bool:
     """ true if dimension is time or frequency, false otherwise """
     return x.physical_type == 'time' or x.physical_type == 'frequency'
@@ -139,8 +148,9 @@ def opt_single_base(simple_unit: CompositeUnit) -> CompositeUnit:
     else:
         unit_name, expon = unit.name, 0
     pwr = simple_unit.powers[0]
+    rounding = np.floor if pwr >= 0 else np.ceil
     new_expon = min(
-        24, max(-24, np.floor((expon + np.log10(value ** (1 / pwr))) / 3) * 3))
+        24, max(-24, rounding((expon + np.log10(value ** (1 / pwr))) / 3) * 3))
     new_value = value * 10 ** (expon * pwr - new_expon * pwr)
     new_prefix = expon_to_pref(new_expon) if new_expon != 0 else ''
     new_unit_name = new_prefix + unit_name
@@ -181,7 +191,7 @@ def opt_comp_units(unit: CompositeUnit) -> CompositeUnit:
                          new_base.powers + unit.powers[1:])
 
 
-def optimize_unit(quant: Union[ComplexNumber, Quantity, UnitBase],
+def optimize(quant: Union[ComplexNumber, Quantity, UnitBase],
                   fix_time_freq: bool = False) \
         -> Union[ComplexNumber, Quantity, UnitBase]:
     """ optimize physical units and quantities """
@@ -211,6 +221,19 @@ def optimize_unit(quant: Union[ComplexNumber, Quantity, UnitBase],
     if fix_time_freq:
         new_unit = fixhertz(new_unit)
     opt_unit = opt_comp_units(new_unit)
-    return (scaled_value *
-            opt_unit.scale *
-            CompositeUnit(1, opt_unit.bases, opt_unit.powers))
+    return Quantity(scaled_value * opt_unit.scale,
+                    CompositeUnit(1, opt_unit.bases, opt_unit.powers))
+
+def invert_unit(unit: UnitBase) -> UnitBase:
+    """
+    gives the reciprocal unit
+    for example: 1/ms -> kHz
+    """
+    if not isinstance(unit, UnitBase):
+        fmt = "expected an instance of UnitBase, received '{}'"
+        raise TypeError(fmt.format(unit))
+    if not isinstance(unit, CompositeUnit):
+        unit = to_composite_unit(unit)
+    inv_powers = [-power for power in unit.powers]
+    inv_unit = CompositeUnit(1/unit.scale, unit.bases, inv_powers)
+    return fixhertz_comp(inv_unit)
