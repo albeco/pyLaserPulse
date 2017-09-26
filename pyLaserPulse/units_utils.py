@@ -57,20 +57,17 @@ def to_composite_unit(x):
     """ convert a NamedUnit to CompositeUnit """
     if not isinstance(x, UnitBase):
         raise TypeError("{} should be instance of UnitBase".format(x))
-    if not isinstance(x, CompositeUnit):
-        x = CompositeUnit(1, [x], [1])
-    return x
+    return x if isinstance(x, CompositeUnit) else CompositeUnit(1, [x], [1])
 
 
 def is_time_freq(x: NamedUnit) -> bool:
     """ true if dimension is time or frequency, false otherwise """
-    return x.physical_type == 'time' or x.physical_type == 'frequency'
+    return x.physical_type in ('time', 'frequency')
 
 
 def flip_prefix(pref: str) -> str:
     """returns 1/prefix"""
-    idx = len(si_prefixes) - 1 - si_prefixes.find(pref)
-    return si_prefixes[idx]
+    return si_prefixes[len(si_prefixes) - 1 - si_prefixes.find(pref)]
 
 
 def fixhertz_item(base: NamedUnit,
@@ -101,9 +98,8 @@ def fixhertz_item(base: NamedUnit,
 
 def fixhertz_comp(u2: CompositeUnit) -> UnitBase:
     """ replaces (1/s -> Hertz) and (1/Hertz -> second) in a CompositeUnit """
-    fixes = tuple(map(fixhertz_item, u2.bases, u2.powers))
     try:
-        new_bases, new_powers = zip(*fixes)
+        new_bases, new_powers = zip(*map(fixhertz_item, u2.bases, u2.powers))
     except ValueError:
         # return dimensionless units unchanged
         return u2
@@ -174,25 +170,22 @@ def opt_comp_units(unit: CompositeUnit) -> CompositeUnit:
     optimizes CompositeUnit instances
     it optimizes only the first base
     """
-    if isinstance(unit.bases[0], CompositeUnit):
-        dec_base = unit.bases[0].decompose()
-        sub_base = CompositeUnit(
-            unit.scale, dec_base.bases[0], dec_base.powers[0] * unit.powers[0])
-        opt_sub_base = opt_comp_units(sub_base)
-        new_base = CompositeUnit(
-            opt_sub_base.scale, opt_sub_base.bases + dec_base.bases[1:],
-            opt_sub_base.powers + dec_base.powers[1:])
-    else:
-        temp_base = CompositeUnit(
-            unit.scale, [unit.bases[0]], [unit.powers[0]])
-        new_base = opt_single_base(temp_base)
+    if not isinstance(unit, CompositeUnit):
+        fmt = "expected CompositeUnit, received {}"
+        raise TypeError(fmt.format(type(unit)))
+    # return dimensionless units unchanged
+    if not unit.bases:
+        return unit
+    # build a single base CompositeUnit so to reuse opt_single_base
+    temp_unit = CompositeUnit(unit.scale, [unit.bases[0]], [unit.powers[0]])
+    new_base = opt_single_base(temp_unit)
     return CompositeUnit(new_base.scale,
                          new_base.bases + unit.bases[1:],
                          new_base.powers + unit.powers[1:])
 
 
 def optimize(quant: Union[ComplexNumber, Quantity, UnitBase],
-                  fix_time_freq: bool = False) \
+             fix_time_freq: bool = False) \
         -> Union[ComplexNumber, Quantity, UnitBase]:
     """ optimize physical units and quantities """
     # if input is a unit rather than a quantity delegate its handling
@@ -224,6 +217,7 @@ def optimize(quant: Union[ComplexNumber, Quantity, UnitBase],
     return Quantity(scaled_value * opt_unit.scale,
                     CompositeUnit(1, opt_unit.bases, opt_unit.powers))
 
+
 def invert_unit(unit: UnitBase) -> UnitBase:
     """
     gives the reciprocal unit
@@ -235,5 +229,5 @@ def invert_unit(unit: UnitBase) -> UnitBase:
     if not isinstance(unit, CompositeUnit):
         unit = to_composite_unit(unit)
     inv_powers = [-power for power in unit.powers]
-    inv_unit = CompositeUnit(1/unit.scale, unit.bases, inv_powers)
+    inv_unit = CompositeUnit(1 / unit.scale, unit.bases, inv_powers)
     return fixhertz_comp(inv_unit)

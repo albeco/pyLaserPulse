@@ -54,6 +54,7 @@ def get_random_unit(test_bases=(u.m, u.s, u.kg, u.A)):
         unit = get_random_unit(test_bases)
     return unit
 
+
 class TestSmallFunctions(UnitsTestCase):
     """ test cases for small utility functions """
 
@@ -66,7 +67,7 @@ class TestSmallFunctions(UnitsTestCase):
         self.assertEqual(ut.pref_to_expon('Z'), 21)
 
     def test_is_close(self):
-        self.assertTrue(ut.is_close(1.01, 1.02, atol = 0.2))
+        self.assertTrue(ut.is_close(1.01, 1.02, atol=0.2))
         self.assertTrue(ut.is_close(101, 102, rtol=0.05))
         self.assertTrue(ut.is_close(-101, -102, rtol=0.05))
         self.assertFalse(ut.is_close(1.01, 1.02, atol=1e-3))
@@ -93,6 +94,7 @@ class TestSmallFunctions(UnitsTestCase):
         flip_twice = ''.join(ut.flip_prefix(p)
                              for p in reversed(ut.si_prefixes))
         self.assertEqual(flip_twice, ut.si_prefixes)
+
 
 class TestFixHertz(UnitsTestCase):
     """ test class for the s/Hz functions in units_utils module """
@@ -157,8 +159,14 @@ class TestFixHertz(UnitsTestCase):
 
     def test_fixhertz_comp(self):
         self.assertUnitEqual(ut.fixhertz_comp(
+            CompositeUnit(0, [], [])),
+            CompositeUnit(0, [], []))
+        self.assertUnitEqual(ut.fixhertz_comp(
             CompositeUnit(1, [], [])),
             CompositeUnit(1, [], []))
+        self.assertUnitEqual(ut.fixhertz_comp(
+            CompositeUnit(0, [u.m], [2])),
+            CompositeUnit(0, [u.m], [2]))
         self.assertUnitEqual(ut.fixhertz_comp(
             CompositeUnit(1, [u.m], [2])),
             CompositeUnit(1, [u.m], [2]))
@@ -962,6 +970,11 @@ class TestOptimUnits(UnitsTestCase):
             CompositeUnit(-1, [u.km], [-1]))
 
     def test_opt_comp_units(self):
+        # test dimensionless unit
+        self.assertUnitEqual(ut.opt_comp_units(
+            CompositeUnit(12, [], [])),
+            CompositeUnit(12, [], []))
+        # test random bases and powers
         test_bases = (u.m, u.s, u.Hz, u.W, u.kJ, u.GA,
                       u.Tmol, u.uN, u.pPa, u.aRy)
         for _ in range(1000):
@@ -1091,6 +1104,7 @@ class TestOptimUnits(UnitsTestCase):
             self.assertQuantityEqual(
                 ut.optimize(quant),
                 new_value * CompositeUnit(1, opt_unit.bases, opt_unit.powers))
+
 
 class TestInvertUnits(UnitsTestCase):
     def test_invert_unit(self):
